@@ -1,91 +1,100 @@
 <section class="title">
-	<h4>Organization</h4>
+    <?php if ($this->method === 'create'): ?>
+        <h4><?php echo lang('org:new') ?></h4>
+        <?php echo form_open_multipart(uri_string(), 'class="crud" autocomplete="off"') ?>
+
+    <?php else: ?>
+        <h4><?php echo sprintf(lang('org:edit'), $organization->name) ?></h4>
+        <?php echo form_open_multipart(uri_string(), 'class="crud"') ?>
+        <?php echo form_hidden('row_edit_id', isset($organization->row_edit_id) ? $organization->row_edit_id : $organization->id); ?>
+    <?php endif ?>
 </section>
 
-	<section class="item">
-	<div class="content">
-	<?php echo form_open($this->uri->uri_string(), 'class="form_inputs"') ?>
+<section class="item">
+    <div class="content">
 
-		<?php echo form_hidden('id', $organization->id) ?>
-		<ul class="fields">
-			
-			<li>
-				<label for="org_name">Name:</label>
-				<div class="input">
-					<?php echo form_input('org_name', isset($organization->org_name) ? $organization->org_name : '', 'maxlength="100"') ?>
-				</div>
-			</li>
-            <li>
-				<label for="org_email">Email:</label>
-				<div class="input">
-					<?php echo form_input('org_email', isset($organization->org_email) ? $organization->org_email:'', 'maxlength="100"') ?>
-				</div>
-			</li>
-			
-			<li>
-				<label for="org_admin">Organization Admin:</label>
-				<div class="input">
-					<?php echo form_dropdown('org_admins', $admins,  isset($organization->org_admins) ? $organization->org_admins : '') ?>
-				</div>
-			</li>
-			
+        <div class="tabs">
 
-			<li>
-				<label for="user_website">Photo:</label>
-				<div class="input">
-					<input type="file" name="org_photo" size="20" />
-				</div>
-			</li>
-            
-            <li>
-				<label for="user_website">Description:</label>
-				<div class="input">
-					<?php echo form_textarea(array('name'=>'org_description', 'value' => isset($organization->org_description) ? $organization->org_description:'', 'rows' => 5)) ?>
-				</div>
-			</li>
+            <ul class="tab-menu">
+                <li><a href="#user-basic-data-tab"><span><?php echo lang('org:basic_data_label') ?></span></a></li>
+                <li><a href="#user-profile-fields-tab"><span><?php echo lang('org:profile_data_label') ?></span></a></li>
+                <?php if($this->current_user->group === 'admin'):?>
+                    <li><a href="#org-superadmin-tab"><span><?php echo lang('org:roles') ?></span></a></li>
+                <?php endif;?>
+                <?php if($this->current_user->group === 'admin' || $this->current_user->group === 'org-admin'):?>
+                    <li><a href="#org-admin-tab"><span><?php echo lang('org:membership') ?></span></a></li>
+                <?php endif;?>
+            </ul>
 
-			<li>
-				<label for="user_email">Address:</label>
-				<div class="input">
-					<?php echo form_input('org_address', isset($organization->org_address) ? $organization->org_address:''); ?>
-				</div>
-			</li>
-            <li>
-				<label for="user_email">Phone:</label>
-				<div class="input">
-					<?php echo form_input('org_phone', isset($organization->org_phone) ? $organization->org_phone:'');?>
-				</div>
-			</li>
-            <li>
-				<label for="user_email">Fax:</label>
-				<div class="input">
-					<?php echo form_input('org_fax', isset($organization->org_fax) ? $organization->org_fax:''); ?>
-				</div>
-			</li>
-            <li>
-				<label for="user_email">Website:</label>
-				<div class="input">
-					<?php echo form_input('org_website', isset($organization->org_website) ? $organization->org_website : ''); ?>
-				</div>
-			</li>
-            <li>
-				<label for="user_email">Facebook:</label>
-				<div class="input">
-					<?php echo form_input('org_facebook', isset($organization->org_facebook) ? $organization->org_facebook : ''); ?>
-				</div>
-			</li>
-            <li>
-				<label for="user_email">Twitter:</label>
-				<div class="input">
-					<?php echo form_input('org_twitter', isset($organization->org_twitter) ? $organization->org_twitter : ''); ?>
-				</div>
-			</li>
-		</ul>
+            <!-- Content tab -->
+            <div class="form_inputs" id="user-basic-data-tab">
+                <fieldset>
+                    <ul>
+                        <?php foreach($org_fields as $field): ?>
+                            <li>
+                                <label for="<?php echo $field['field_slug'] ?>">
+                                    <?php echo (lang($field['field_name'])) ? lang('profile:'.$field['field_name']) : $field['field_name'];  ?>
+                                    <?php if ($field['required']){ ?> <span>*</span><?php } ?>
+                                </label>
+                                <div class="input">
+                                    <?php
+                                    if($field['field_slug'] === 'email'){ echo '<input type="text" name="email" value="'.$field['value']['email_address'].'" id="email"/>';}
+                                    else { echo $field['input']; }
+                                    ?>
+                                </div>
+                            </li>
+                        <?php endforeach ?>
 
-		<div class="buttons float-right padding-top">
-			<?php $this->load->view('admin/partials/buttons', array('buttons' => array('save', 'cancel') )) ?>
-		</div>
+                    </ul>
+                </fieldset>
+            </div>
 
-	<?php echo form_close() ?>
-	</div>
+            <div class="form_inputs" id="user-profile-fields-tab">
+
+                <fieldset>
+                    <ul>
+                        <?php foreach($profile_fields as $field): ?>
+                            <li>
+                                <label for="<?php echo $field['field_slug'] ?>">
+                                    <?php echo (lang($field['field_name'])) ? lang('profile:'.$field['field_name']) : $field['field_name'];  ?>
+                                    <?php if ($field['required']){ ?> <span>*</span><?php } ?>
+                                </label>
+                                <div class="input">
+                                    <?php echo $field['input'] ?>
+                                </div>
+                            </li>
+                        <?php endforeach ?>
+
+                    </ul>
+                </fieldset>
+            </div>
+
+
+            <div class="form_inputs" id="org-superadmin-tab">
+                <fieldset>
+                    <ul>
+                        <li><h4>Coming Soon</h4></li>
+
+                    </ul>
+                </fieldset>
+            </div>
+
+            <div class="form_inputs" id="org-admin-tab">
+                <fieldset>
+                    <ul>
+                        <li><h4>Manage Membership Coming Soon</h4></li>
+
+                    </ul>
+                </fieldset>
+            </div>
+
+        </div>
+
+        <div class="buttons">
+            <?php $this->load->view('admin/partials/buttons', array('buttons' => array('save', 'save_exit', 'cancel') )) ?>
+        </div>
+
+        <?php echo form_close() ?>
+
+    </div>
 </section>

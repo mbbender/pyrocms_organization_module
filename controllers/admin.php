@@ -10,54 +10,8 @@
 class Admin extends Admin_Controller
 {
 
-    
-    protected $validation_rules = array(
-		array(
-			'field' => 'org_name',
-			'label' => 'Name',
-			'rules' => 'trim|required|max_length[100]|callback__check_name'
-		),
-        array(
-			'field' => 'org_email',
-			'label' => 'Email',
-			'rules' => 'trim|required|max_length[100]|valid_email'
-		),
-        array(
-			'field' => 'org_admins',
-            'label' => 'Organization Admin',
-			'rules' => 'trim|required'			
-		),
-		array(
-			'field' => 'org_address',
-            'label' => 'Address',
-			'rules' => 'trim|required'			
-		),
-        array(
-			'field' => 'org_phone',
-            'label' => 'Phone'			
-		),
-        array(
-			'field' => 'org_fax',
-            'label' => 'Fax'			
-		),
-        array(
-			'field' => 'org_website',
-            'label' => 'Website',			
-		),
-        array(
-			'field' => 'org_facebook',
-            'label' => 'Facebook'		
-		),
-         array(
-			'field' => 'org_twitter',
-            'label' => 'Twitter'		
-		),
-		array(
-			'field' => 'id',
-			'rules' => 'trim|is_numeric'			
-		),
-	);
-     var $limit = 2; // change the limit for display the pagination results
+    protected $section = 'orgs';
+
     //--------------------------------------------------------------------------    
     /**
      * Constructor method
@@ -66,17 +20,14 @@ class Admin extends Admin_Controller
      */
     public function __construct()
     {
-            // Call the parent constructor
-            parent::__construct();
+        // Call the parent constructor
+        parent::__construct();
 
-            // Load the required libraries, models, etc
-            $this->load->library('form_validation');
-            $this->load->model('organization_m');
-            $this->load->helper('html');
-            $this->lang->load('organization');
-            // Set the validation rules
-	       	$this->form_validation->set_rules($this->validation_rules);
-
+        // Load the required libraries, models, etc
+        $this->lang->load('organization');
+        $this->load->helper('html');
+        $this->load->driver('Streams');
+        $this->load->model('permissions/permission_m');
     }
 
    /*
@@ -86,20 +37,36 @@ class Admin extends Admin_Controller
 
     public function index()
     {
-		
-        // Create pagination links
-		$total_rows = $this->organization_m->count_all();
-		$pagination = create_pagination('admin/organization/index', $total_rows, $this->limit, 4);
-		
-		// Using this data, get the relevant results
-		$organization_list = $this->organization_m->order_by('id', 'desc')->limit($pagination['limit'])->get_all();
-	//	print_r($organization_list);
-       // die;
-		$this->template
-            ->title('Organization List')
-            ->set('organization_list', $organization_list)
-            ->set('pagination', $pagination)
-            ->build('admin/index');
+
+        // The extra array is where most of our
+        // customization options go.
+        $extra = array();
+
+        // The title can be a string, or a language
+        // string, prefixed by lang:
+        $extra['title'] = 'lang:org:orgs';
+
+        // We can customize the buttons that appear
+        // for each row. They point to our own functions
+        // elsewhere in this controller. -entry_id- will
+        // be replaced by the entry id of the row.
+        $extra['buttons'] = array(
+            array(
+                'label' => lang('global:edit'),
+                'url' => 'admin/organization/edit/-entry_id-'
+            ),
+            array(
+                'label' => lang('global:delete'),
+                'url' => 'admin/organization/delete/-entry_id-',
+                'confirm' => true
+            )
+        );
+
+        // In this example, we are setting the 5th parameter to true. This
+        // signals the function to use the template library to build the page
+        // so we don't have to. If we had that set to false, the function
+        // would return a string with just the form.
+        $this->streams->cp->entries_table('orgs', 'org', 10, 'admin/organization/index', true, $extra);
     }
 
     //--------------------------------------------------------------------------
@@ -110,36 +77,100 @@ class Admin extends Admin_Controller
 	*/
 	public function create()
 	{
-		
-		
-		$this->form_validation->set_rules($this->validation_rules); // validate the form values
 
-		if ($this->form_validation->run()) {
-			
-			if ($id = $this->organization_m->insert($_POST)) { // make the post values
-				
-				$this->session->set_flashdata('success', 'Added Successfully');
-			}
-			else {
-				$this->session->set_flashdata('error', 'Error occured. Please try again or later');
-			}
+        // Extra validation for basic data
+        //$this->validation_rules['name']['rules'] .= '|required';
 
-			redirect('admin/organization/index');
-		}
-		
-		$organization = new stdClass();
-		 // Get admin list
-		$admins = $this->organization_m->get_admins_list();		
-		// Loop through each validation rule
-		foreach ($this->validation_rules as $rule)
-		{
-			$organization->{$rule['field']} = set_value($rule['field']);
-		}			
-			
-		$this->template
-            ->set('organization', $organization)
-            ->set('admins', $admins)
+        // Get the profile fields validation array from streams
+        $org_validation = $this->streams->streams->validation_array('orgs', 'org');
+        $profile_validation = $this->streams->streams->validation_array('profile', 'org');
+
+        // Set the validation rules
+        $this->form_validation->set_rules(array_merge($profile_validation, $org_validation));
+
+
+
+        // keep non-admins from creating admin accounts. If they aren't an admin then force new one as a "user" account
+        //$group_id = ($this->current_user->group !== 'admin' and $group_id == 1) ? 2 : $group_id;
+
+        // Get user profile data. This will be passed to our
+        // streams insert_entry data in the model.
+        $assignments = $this->streams->streams->get_assignments('profile', 'org');
+        $profile_data = array();
+
+        foreach ($assignments as $assign)
+        {
+            $profile_data[$assign->field_slug] = $this->input->post($assign->field_slug);
+        }
+
+        // Some stream fields need $_POST as well.
+        $profile_data = array_merge($profile_data, $_POST);
+
+
+
+        if ($this->form_validation->run() !== false)
+        {
+
+            if ($profile_id = $this->streams->entries->insert_entry($profile_data, 'profile', 'org'))
+            {
+                $extra['org_profile_id'] = $profile_id;
+
+                if ($org_id = $this->streams->entries->insert_entry($profile_data, 'orgs', 'org',array(),$extra))
+                {
+                    $this->session->set_flashdata('success', sprintf($this->lang->line('org:submit_success'), $this->input->post('title')));
+
+                }
+                else
+                {
+                    $this->session->set_flashdata('error', lang('org:submit_error'));
+                }
+            }
+            else
+            {
+                $this->session->set_flashdata('error', lang('org:submit_error'));
+            }
+
+            // Redirect back to the form or main page
+            ($this->input->post('btnAction') == 'save_exit') ? redirect('admin/organization') : redirect('admin/organization/create');
+        }
+        else
+        {
+            // Go through all the known fields and get the post values
+            if ($_POST)
+            {
+                $member = (object) $_POST;
+            }
+        }
+
+
+        if ( ! isset($member))
+        {
+            $member = new stdClass();
+        }
+
+
+        $stream_fields = $this->streams_m->get_stream_fields($this->streams_m->get_stream_id_from_slug('orgs', 'org'));
+        // Set Values
+        $org_values = $this->fields->set_values($stream_fields, null, 'new');
+        // Run stream field events
+        $this->fields->run_field_events($stream_fields, array(), $org_values);
+
+
+        $stream_fields = $this->streams_m->get_stream_fields($this->streams_m->get_stream_id_from_slug('profile', 'org'));
+        // Set Values
+        $values = $this->fields->set_values($stream_fields, null, 'new');
+        // Run stream field events
+        $this->fields->run_field_events($stream_fields, array(), $values);
+
+        $this->template
+            ->title($this->module_details['name'], lang('org:add_title'))
+            ->set('organization', $member)
+            ->set('org_fields', $this->streams->fields->get_stream_fields('orgs', 'org', $org_values))
+            ->set('profile_fields', $this->streams->fields->get_stream_fields('profile', 'org', $values))
             ->build('admin/form');
+
+
+
 		
 	}
     /**
@@ -149,32 +180,87 @@ class Admin extends Admin_Controller
 	 * @return void
 	 */
 	public function edit($id = 0)
-	{	
-		// Get the task
-		$organization = $this->organization_m->get($id);
-        // Get admin list
-		$admins = $this->organization_m->get_admins_list();
-		// ID specified?
-		$organization or redirect('admin/organization/index');
+	{
+        $id or redirect('admin/organization');
 
-		$this->form_validation->set_rules('id', 'ID', 'trim|required|is_numeric');
-		
-		// Validate the results
-		if ($this->form_validation->run())
-		{		
-			$this->organization_m->update($id, $_POST)
-				? $this->session->set_flashdata('success', 'Successfully Updated' )
-				: $this->session->set_flashdata('error', 'Some error occured');
-			
-			redirect('admin/organization/index');
-		}
-		
+        $org = $this->streams->entries->get_entry($id,'orgs','org');
+        $profile_fields = $this->streams->entries->get_entry($org->org_profile_id,'profile','org');
 
-		$this->template
-			->title($this->module_details['name'], 'Edit Organization')
-			->set('organization', $organization)
-            ->set('admins', $admins)
-			->build('admin/form');
+        // Get the validation for our custom blog fields.
+        $org_validation = $this->streams->streams->validation_array('orgs', 'org','edit',array(), $id);
+        $profile_validation = $this->streams->streams->validation_array('profile', 'org', 'edit', array(), $org->org_profile_id);
+
+        // Merge and set our validation rules
+        $this->form_validation->set_rules(array_merge($org_validation, $profile_validation));
+
+        if ($this->form_validation->run())
+        {
+
+            if ($this->streams->entries->update_entry($id, $_POST, 'orgs', 'org') && $this->streams->entries->update_entry($org->org_profile_id, $_POST, 'profile', 'org'))
+            {
+                $this->session->set_flashdata(array('success' => sprintf(lang('org:edit_success'), $this->input->post('name'))));
+
+                // Blog article has been updated, may not be anything to do with publishing though
+                Events::trigger('org_updated', $id);
+
+            }
+            else
+            {
+                $this->session->set_flashdata('error', lang('org:edit_error'));
+            }
+
+            // Redirect back to the form or main page
+            ($this->input->post('btnAction') == 'save_exit') ? redirect('admin/organization') : redirect('admin/organization/edit/'.$id);
+        }
+
+        // Go through all the known fields and get the post values
+        $org_assignments = $this->streams->streams->get_assignments('orgs', 'org');
+        $org_data = array();
+        foreach ($org_assignments as $assign)
+        {
+            if (isset($_POST[$assign->field_slug]))
+            {
+                $org_data[$assign->field_slug] = $this->input->post($assign->field_slug);
+            }
+            elseif (isset($org->{$assign->field_slug}))
+            {
+                $org_data[$assign->field_slug] = $org->{$assign->field_slug};
+            }
+        }
+
+        $assignments = $this->streams->streams->get_assignments('profile', 'org');
+        $profile_data = array();
+        foreach ($assignments as $assign)
+        {
+            if (isset($_POST[$assign->field_slug]))
+            {
+                $profile_data[$assign->field_slug] = $this->input->post($assign->field_slug);
+            }
+            elseif (isset($profile_fields->{$assign->field_slug}))
+            {
+                $profile_data[$assign->field_slug] = $profile_fields->{$assign->field_slug};
+            }
+        }
+
+        $stream_fields = $this->streams_m->get_stream_fields($this->streams_m->get_stream_id_from_slug('orgs', 'org'));
+        // Set Values
+        $values = $this->fields->set_values($stream_fields, null, 'edit');
+        // Run stream field events
+        $this->fields->run_field_events($stream_fields, array(), $values);
+
+
+        $stream_fields = $this->streams_m->get_stream_fields($this->streams_m->get_stream_id_from_slug('profile', 'org'));
+        // Set Values
+        $values = $this->fields->set_values($stream_fields, null, 'edit');
+        // Run stream field events
+        $this->fields->run_field_events($stream_fields, array(), $values);
+
+        $this->template
+            ->title($this->module_details['name'], lang('org:edit_title'))
+            ->set('organization', $org)
+            ->set('org_fields', $this->streams->fields->get_stream_fields('orgs', 'org', $org_data))
+            ->set('profile_fields',$this->streams->fields->get_stream_fields('profile', 'org', $profile_data, $org->org_profile_id))
+            ->build('admin/form');
 	}
     /**
 	 * Delete method, deletes an existing organization (obvious isn't it?)
@@ -183,56 +269,14 @@ class Admin extends Admin_Controller
 	 * @return void
 	 */
 	public function delete($id = 0)
-	{	
-		$id_array = (!empty($id)) ? array($id) : $this->input->post('action_to');
-		
-		// Delete multiple
-		if (!empty($id_array))
-		{
-			$deleted = 0;
-			$to_delete = 0;
-			$deleted_ids = array();
-			foreach ($id_array as $id)
-			{
-				if ($this->organization_m->delete($id))
-				{
-					$deleted++;
-					$deleted_ids[] = $id;
-				}
-				else
-				{
-					$this->session->set_flashdata('error', 'Error occured while deleting organizations');
-				}
-				$to_delete++;
-			}
-			
-			if ( $deleted > 0 )
-			{
-				$this->session->set_flashdata('success', 'Deleted Successfully');
-			}
-						
-		}		
-		else
-		{
-			$this->session->set_flashdata('error', 'Please make sure selection');
-		}
-		
-		redirect('admin/organization/index');
-	}
-    /**
-	 * Callback method that checks the title of the organization
-	 *
-	 * @param string title The title to check
-	 * @return bool
-	 */
-	public function _check_name($name = '')
 	{
-		$id = $this->input->post('id');
-		if ($this->organization_m->check_title($name, $id)) {
-			$this->form_validation->set_message('_check_name', 'Organization name already exist');
-			return FALSE;
-		}
+        $org = $this->streams->entries->get_entry($id,'orgs','org');
+        $this->streams->entries->delete_entry($org->org_profile_id, 'profile', 'org');
+        $this->streams->entries->delete_entry($id, 'orgs', 'org');
+        $this->session->set_flashdata('error', sprintf(lang('org:deleted'),$org->name));
 
-		return TRUE;
+        redirect('admin/organization/');
 	}
+
+
 }
