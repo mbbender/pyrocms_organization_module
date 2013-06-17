@@ -18,9 +18,6 @@
             <ul class="tab-menu">
                 <li><a href="#user-basic-data-tab"><span><?php echo lang('org:basic_data_label') ?></span></a></li>
                 <li><a href="#user-profile-fields-tab"><span><?php echo lang('org:profile_data_label') ?></span></a></li>
-                <?php if($this->current_user->group === 'admin'):?>
-                    <li><a href="#org-superadmin-tab"><span><?php echo lang('org:roles') ?></span></a></li>
-                <?php endif;?>
                 <?php if($this->current_user->group === 'admin' || $this->current_user->group === 'org-admin'):?>
                     <li><a href="#org-admin-tab"><span><?php echo lang('org:membership') ?></span></a></li>
                 <?php endif;?>
@@ -31,6 +28,8 @@
                 <fieldset>
                     <ul>
                         <?php foreach($org_fields as $field): ?>
+                            <?php if($field['field_slug'] === 'admins' && $this->current_user->group !== 'admin') continue; ?>
+
                             <li>
                                 <label for="<?php echo $field['field_slug'] ?>">
                                     <?php echo (lang($field['field_name'])) ? lang('profile:'.$field['field_name']) : $field['field_name'];  ?>
@@ -69,15 +68,6 @@
                 </fieldset>
             </div>
 
-
-            <div class="form_inputs" id="org-superadmin-tab">
-                <fieldset>
-                    <ul>
-                        <li><h4>Coming Soon</h4></li>
-
-                    </ul>
-                </fieldset>
-            </div>
 
             <div class="form_inputs" id="org-admin-tab">
                 <fieldset>

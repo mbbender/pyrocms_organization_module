@@ -15,7 +15,7 @@ class Module_Organization extends Module {
 			),
 			'frontend' => TRUE,
 			'backend' => TRUE,
-			'menu' => 'Wisconsin',
+			'menu' => 'org:wisconsin',
             'roles' => array(
                 'manage_org', 'create_org', 'delete_org',
                 'manage_profile_fields'
@@ -56,8 +56,8 @@ class Module_Organization extends Module {
         $this->load->language('organization/organization');
 
         $this->dbforge->drop_table('org_orgs');
-        $this->dbforge->drop_table('org_profile');
-        $this->dbforge->drop_table('org_members_orgs');
+        $this->dbforge->drop_table('org_profiles');
+        $this->dbforge->drop_table('org_orgs_profiles');
 
         $this->load->driver('Streams');
         $this->streams->utilities->remove_namespace('org');
@@ -70,8 +70,7 @@ class Module_Organization extends Module {
 
 
         if ( ! $this->streams->streams->add_stream('lang:org:orgs', 'orgs', 'org', 'org_', null)) return false;
-        if ( ! $profile_stream_id = $this->streams->streams->add_stream('lang:org:profile_fields', 'profile', 'org', 'org_', null)) return false;
-        if ( ! $member_org_stream_id = $this->streams->streams->add_stream('lang:org:member_org','member_org','org','org_',null)) return false;
+        if ( ! $profile_stream_id = $this->streams->streams->add_stream('lang:org:profile_fields', 'profiles', 'org', 'org_', null)) return false;
 
         //$users_stream = $this->streams->streams->get_stream('users');
 
@@ -97,11 +96,19 @@ class Module_Organization extends Module {
                 'required' => false
             ),
             array(
+                'name' => 'Admins',
+                'slug' => 'admins',
+                'namespace' => 'org',
+                'type' => 'multiple',
+                'extra' => array('choose_stream' => $this->streams->streams->get_stream('profiles','users')->id,'choose_ui'=>'multi'),
+                'assign' => 'orgs'
+            ),
+            array(
                 'name' => 'Photo',
                 'slug' => 'org_profile_photo',
                 'namespace' => 'org',
                 'type' => 'image',
-                'assign' => 'profile',
+                'assign' => 'profiles',
                 'title_column' => false,
                 'required' => false
             ),
@@ -110,7 +117,7 @@ class Module_Organization extends Module {
                 'slug' => 'org_profile_description',
                 'namespace' => 'org',
                 'type' => 'textarea',
-                'assign' => 'profile'
+                'assign' => 'profiles'
             ),
             array(
                 'name' => 'Address',
@@ -118,7 +125,7 @@ class Module_Organization extends Module {
                 'namespace' => 'org',
                 'type' => 'text',
                 'extra' => array('max_length' => 255),
-                'assign' => 'profile'
+                'assign' => 'profiles'
             ),
             array(
                 'name' => 'Phone',
@@ -126,7 +133,7 @@ class Module_Organization extends Module {
                 'namespace' => 'org',
                 'type' => 'text',
                 'extra' => array('max_length' => 25),
-                'assign' => 'profile'
+                'assign' => 'profiles'
             ),
             array(
                 'name' => 'Fax',
@@ -134,7 +141,7 @@ class Module_Organization extends Module {
                 'namespace' => 'org',
                 'type' => 'text',
                 'extra' => array('max_length' => 25),
-                'assign' => 'profile'
+                'assign' => 'profiles'
             ),
             array(
                 'name' => 'Website',
@@ -142,7 +149,7 @@ class Module_Organization extends Module {
                 'namespace' => 'org',
                 'type' => 'text',
                 'extra' => array('max_length' => 150),
-                'assign' => 'profile'
+                'assign' => 'profiles'
             ),
             array(
                 'name' => 'Facebook',
@@ -150,7 +157,7 @@ class Module_Organization extends Module {
                 'namespace' => 'org',
                 'type' => 'text',
                 'extra' => array('max_length' => 150),
-                'assign' => 'profile'
+                'assign' => 'profiles'
             ),
             array(
                 'name' => 'Twitter',
@@ -158,31 +165,7 @@ class Module_Organization extends Module {
                 'namespace' => 'org',
                 'type' => 'text',
                 'extra' => array('max_length' => 150),
-                'assign' => 'profile'
-            ),
-            array(
-                'name' => 'User',
-                'slug' => 'user_id',
-                'namespace' => 'org',
-                'type' => 'relationship',
-                'extra' => array('choose_stream' => 'profiles'),
-                'assign' => 'member_org'
-            ),
-            array(
-                'name' => 'Organization',
-                'slug' => 'org_id',
-                'namespace' => 'org',
-                'type' => 'relationship',
-                'extra' => array('choose_stream' => 'orgs'),
-                'assign' => 'member_org'
-            ),
-            array(
-                'name' => 'Role',
-                'slug' => 'role',
-                'namespace' => 'org',
-                'type' => 'choice',
-                'extra' => array('choice_type' => 'dropdown','choice_data'=>array('Unapproved','Basic','Org Admin','Banned'),'default_value'=>'Basic'),
-                'assign' => 'member_org'
+                'assign' => 'profiles'
             )
         );
 
@@ -192,14 +175,16 @@ class Module_Organization extends Module {
         $this->streams->streams->update_stream('orgs', 'org', array(
             'view_options' => array(
                 'id',
-                'name'
+                'name',
+                'email'
             )
         ));
 
-        $this->streams->streams->update_stream('profile', 'org', array(
+        $this->streams->streams->update_stream('profiles', 'org', array(
             'view_options' => array(
                 'id',
-                'faq_category_title'
+                'description',
+                'phone'
             )
         ));
 
@@ -235,8 +220,8 @@ class Module_Organization extends Module {
         $this->load->driver('Streams');
         $this->streams->utilities->remove_namespace('org');
         $this->dbforge->drop_table('org_orgs');
-        $this->dbforge->drop_table('org_profile');
-        $this->dbforge->drop_table('org_members_orgs');
+        $this->dbforge->drop_table('org_profiles');
+        $this->dbforge->drop_table('org_orgs_profiles');
 		return true;
 	}
 

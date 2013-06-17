@@ -83,7 +83,7 @@ class Admin extends Admin_Controller
 
         // Get the profile fields validation array from streams
         $org_validation = $this->streams->streams->validation_array('orgs', 'org');
-        $profile_validation = $this->streams->streams->validation_array('profile', 'org');
+        $profile_validation = $this->streams->streams->validation_array('profiles', 'org');
 
         // Set the validation rules
         $this->form_validation->set_rules(array_merge($profile_validation, $org_validation));
@@ -95,7 +95,7 @@ class Admin extends Admin_Controller
 
         // Get user profile data. This will be passed to our
         // streams insert_entry data in the model.
-        $assignments = $this->streams->streams->get_assignments('profile', 'org');
+        $assignments = $this->streams->streams->get_assignments('profiles', 'org');
         $profile_data = array();
 
         foreach ($assignments as $assign)
@@ -111,7 +111,7 @@ class Admin extends Admin_Controller
         if ($this->form_validation->run() !== false)
         {
 
-            if ($profile_id = $this->streams->entries->insert_entry($profile_data, 'profile', 'org'))
+            if ($profile_id = $this->streams->entries->insert_entry($profile_data, 'profiles', 'org'))
             {
                 $extra['org_profile_id'] = $profile_id;
 
@@ -156,17 +156,23 @@ class Admin extends Admin_Controller
         $this->fields->run_field_events($stream_fields, array(), $org_values);
 
 
-        $stream_fields = $this->streams_m->get_stream_fields($this->streams_m->get_stream_id_from_slug('profile', 'org'));
+        $stream_fields = $this->streams_m->get_stream_fields($this->streams_m->get_stream_id_from_slug('profiles', 'org'));
         // Set Values
         $values = $this->fields->set_values($stream_fields, null, 'new');
         // Run stream field events
         $this->fields->run_field_events($stream_fields, array(), $values);
 
+        $assign_admin_view_extra = array(
+            'return' => 'admin/organization',
+            'success_message' => lang('org:add_admin_success'),
+            'failure_message' => lang('org:add_admin_failure'),
+            'title' => 'lang:org:add_admin',
+        );
         $this->template
             ->title($this->module_details['name'], lang('org:add_title'))
             ->set('organization', $member)
             ->set('org_fields', $this->streams->fields->get_stream_fields('orgs', 'org', $org_values))
-            ->set('profile_fields', $this->streams->fields->get_stream_fields('profile', 'org', $values))
+            ->set('profile_fields', $this->streams->fields->get_stream_fields('profiles', 'org', $values))
             ->build('admin/form');
 
 
@@ -184,11 +190,11 @@ class Admin extends Admin_Controller
         $id or redirect('admin/organization');
 
         $org = $this->streams->entries->get_entry($id,'orgs','org');
-        $profile_fields = $this->streams->entries->get_entry($org->org_profile_id,'profile','org');
+        $profile_fields = $this->streams->entries->get_entry($org->org_profile_id,'profiles','org');
 
         // Get the validation for our custom blog fields.
         $org_validation = $this->streams->streams->validation_array('orgs', 'org','edit',array(), $id);
-        $profile_validation = $this->streams->streams->validation_array('profile', 'org', 'edit', array(), $org->org_profile_id);
+        $profile_validation = $this->streams->streams->validation_array('profiles', 'org', 'edit', array(), $org->org_profile_id);
 
         // Merge and set our validation rules
         $this->form_validation->set_rules(array_merge($org_validation, $profile_validation));
@@ -196,7 +202,7 @@ class Admin extends Admin_Controller
         if ($this->form_validation->run())
         {
 
-            if ($this->streams->entries->update_entry($id, $_POST, 'orgs', 'org') && $this->streams->entries->update_entry($org->org_profile_id, $_POST, 'profile', 'org'))
+            if ($this->streams->entries->update_entry($id, $_POST, 'orgs', 'org') && $this->streams->entries->update_entry($org->org_profile_id, $_POST, 'profiles', 'org'))
             {
                 $this->session->set_flashdata(array('success' => sprintf(lang('org:edit_success'), $this->input->post('name'))));
 
@@ -214,6 +220,7 @@ class Admin extends Admin_Controller
         }
 
         // Go through all the known fields and get the post values
+        $org_entry = $this->streams->entries->get_entry($id, 'orgs', 'org', false, false);
         $org_assignments = $this->streams->streams->get_assignments('orgs', 'org');
         $org_data = array();
         foreach ($org_assignments as $assign)
@@ -228,7 +235,7 @@ class Admin extends Admin_Controller
             }
         }
 
-        $assignments = $this->streams->streams->get_assignments('profile', 'org');
+        $assignments = $this->streams->streams->get_assignments('profiles', 'org');
         $profile_data = array();
         foreach ($assignments as $assign)
         {
@@ -249,17 +256,19 @@ class Admin extends Admin_Controller
         $this->fields->run_field_events($stream_fields, array(), $values);
 
 
-        $stream_fields = $this->streams_m->get_stream_fields($this->streams_m->get_stream_id_from_slug('profile', 'org'));
+        $stream_fields = $this->streams_m->get_stream_fields($this->streams_m->get_stream_id_from_slug('profiles', 'org'));
         // Set Values
         $values = $this->fields->set_values($stream_fields, null, 'edit');
         // Run stream field events
         $this->fields->run_field_events($stream_fields, array(), $values);
 
+
+
         $this->template
             ->title($this->module_details['name'], lang('org:edit_title'))
             ->set('organization', $org)
-            ->set('org_fields', $this->streams->fields->get_stream_fields('orgs', 'org', $org_data))
-            ->set('profile_fields',$this->streams->fields->get_stream_fields('profile', 'org', $profile_data, $org->org_profile_id))
+            ->set('org_fields', $this->streams->fields->get_stream_fields('orgs', 'org', $org_data, $id))
+            ->set('profile_fields',$this->streams->fields->get_stream_fields('profiles', 'org', $profile_data, $org->org_profile_id))
             ->build('admin/form');
 	}
     /**
@@ -271,7 +280,7 @@ class Admin extends Admin_Controller
 	public function delete($id = 0)
 	{
         $org = $this->streams->entries->get_entry($id,'orgs','org');
-        $this->streams->entries->delete_entry($org->org_profile_id, 'profile', 'org');
+        $this->streams->entries->delete_entry($org->org_profile_id, 'profiles', 'org');
         $this->streams->entries->delete_entry($id, 'orgs', 'org');
         $this->session->set_flashdata('error', sprintf(lang('org:deleted'),$org->name));
 

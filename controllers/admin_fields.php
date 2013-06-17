@@ -52,7 +52,7 @@ class Admin_fields extends Admin_Controller {
 		$this->template->title(lang('org:profile_fields'));
 
 		$this->streams->cp->assignments_table(
-								'profile',
+								'profiles',
 								'org',
 								Settings::get('records_per_page'),
 								'admin/organization/fields/index',
@@ -74,7 +74,7 @@ class Admin_fields extends Admin_Controller {
 		$extra['show_cancel'] 	= true;
 		$extra['cancel_uri'] 	= 'admin/organization/fields';
 
-		$this->streams->cp->field_form('profile', 'org', 'new', 'admin/organization/fields', null, array(), true, $extra);
+		$this->streams->cp->field_form('profiles', 'org', 'new', 'admin/organization/fields', null, array(), true, $extra);
 	}
 
 	// --------------------------------------------------------------------------
@@ -124,6 +124,6 @@ class Admin_fields extends Admin_Controller {
 		$extra['show_cancel'] 	= true;
 		$extra['cancel_uri'] 	= 'admin/organization/fields';
 
-		$this->streams->cp->field_form('profile', 'org', 'edit', 'admin/organization/fields', $assign_id, array(), true, $extra);
+		$this->streams->cp->field_form('profiles', 'org', 'edit', 'admin/organization/fields', $assign_id, array(), true, $extra);
 	}
 }
