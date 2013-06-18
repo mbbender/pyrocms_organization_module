@@ -18,9 +18,6 @@
             <ul class="tab-menu">
                 <li><a href="#user-basic-data-tab"><span><?php echo lang('org:basic_data_label') ?></span></a></li>
                 <li><a href="#user-profile-fields-tab"><span><?php echo lang('org:profile_data_label') ?></span></a></li>
-                <?php if($this->current_user->group === 'admin' || $this->current_user->group === 'org-admin'):?>
-                    <li><a href="#org-admin-tab"><span><?php echo lang('org:membership') ?></span></a></li>
-                <?php endif;?>
             </ul>
 
             <!-- Content tab -->
@@ -69,14 +66,6 @@
             </div>
 
 
-            <div class="form_inputs" id="org-admin-tab">
-                <fieldset>
-                    <ul>
-                        <li><h4>Manage Membership Coming Soon</h4></li>
-
-                    </ul>
-                </fieldset>
-            </div>
 
         </div>
 

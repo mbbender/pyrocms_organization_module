@@ -111,6 +111,14 @@ class Module_Organization extends Module {
                 'assign' => 'orgs'
             ),
             array(
+                'name' => 'Members',
+                'slug' => 'members',
+                'namespace' => 'org',
+                'type' => 'multiple',
+                'extra' => array('choose_stream' => $this->streams->streams->get_stream('profiles','users')->id,'choose_ui'=>'multi'),
+                'assign' => 'orgs'
+            ),
+            array(
                 'name' => 'Photo',
                 'slug' => 'org_profile_photo',
                 'namespace' => 'org',
@@ -201,24 +209,7 @@ class Module_Organization extends Module {
 
         $this->dbforge->add_column('org_orgs', $org_fields);
 
-
-
-        // Role can be unapproved, basic, admin
-        // Admin can approve unapproved users and edit org profile data.
-        /*
-        $org_members_orgs_fields = array(
-            'id' => array('type' => 'INT', 'constraint' => 11, 'unsigned' => TRUE, 'auto_increment' => TRUE),
-            'org_id' => array('type' => 'INT', 'constraint' => 11),
-            'user_id' => array('type' => 'INT', 'constraint' => 11),
-            'role' => array('type' => 'varchar', 'constraint' => 25, 'default'=>'unapproved')
-        );
-        $this->dbforge->add_field($org_members_orgs_fields);
-        $this->dbforge->add_key('id',TRUE);
-        $this->dbforge->create_table('org_members_orgs');
-        */
-        // todo: Make a unique key for org_id,user_id combination
-
-
+        // todo: Add Org Admin role and default it to only manange_org permission with 0 other permissions in the whole system.
         return true;
 	}
 

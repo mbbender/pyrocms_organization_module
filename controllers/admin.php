@@ -80,6 +80,7 @@ class Admin extends Admin_Controller
         // signals the function to use the template library to build the page
         // so we don't have to. If we had that set to false, the function
         // would return a string with just the form.
+        // todo: Filter results to only show orgs current_user is set as admin on. Maybe $extra['filters']? Have post out on community boards -MBB 6/26/13
         $this->streams->cp->entries_table('orgs', 'org', 10, 'admin/organization/index', true, $extra);
     }
 
