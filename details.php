@@ -25,26 +25,33 @@ class Module_Organization extends Module {
                     'name'=>'org:orgs',
                     'uri'=>'admin/organization',
                     'shortcuts'=>array(
-                        'create' => array(
-                            'name'=>'org:new',
-                            'uri'=>'admin/organization/create',
-                            'class'=>'add'
-                        )
-                    )
-                ),
-                'org_profile' => array(
-                    'name'=>'org:profile_fields',
-                    'uri'=>'admin/organization/fields',
-                    'shortcuts' => array(
-                        'create' => array(
-                            'name' 	=> 'org:add_field',
-                            'uri' 	=> 'admin/organization/fields/create',
-                            'class' => 'add'
-                        )
+
                     )
                 )
+
             )
 		);
+
+        if($this->permission_m->has_role('create_org','organization')){
+            $info['sections']['orgs']['shortcuts']['create'] = array(
+                'name'=>'org:new',
+                'uri'=>'admin/organization/create',
+                'class'=>'add'
+            );
+        }
+        if($this->permission_m->has_role('manage_profile_fields','organization')){
+            $info['sections']['org_profile']= array(
+                'name'=>'org:profile_fields',
+                'uri'=>'admin/organization/fields',
+                'shortcuts' => array(
+                    'create' => array(
+                        'name' 	=> 'org:add_field',
+                        'uri' 	=> 'admin/organization/fields/create',
+                        'class' => 'add'
+                    )
+                )
+            );
+        }
 
 	
 		return $info;

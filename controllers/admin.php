@@ -28,6 +28,9 @@ class Admin extends Admin_Controller
         $this->load->helper('html');
         $this->load->driver('Streams');
         $this->load->model('permissions/permission_m');
+
+        // Validate User is Admin or Org Admin with privileges to this organization.
+
     }
 
    /*
@@ -37,6 +40,7 @@ class Admin extends Admin_Controller
 
     public function index()
     {
+        role_or_die('organization', 'manage_org');
 
         // The extra array is where most of our
         // customization options go.
@@ -50,17 +54,27 @@ class Admin extends Admin_Controller
         // for each row. They point to our own functions
         // elsewhere in this controller. -entry_id- will
         // be replaced by the entry id of the row.
-        $extra['buttons'] = array(
-            array(
-                'label' => lang('global:edit'),
-                'url' => 'admin/organization/edit/-entry_id-'
-            ),
-            array(
-                'label' => lang('global:delete'),
-                'url' => 'admin/organization/delete/-entry_id-',
-                'confirm' => true
-            )
-        );
+
+        $extra['buttons'] = array();
+
+        if($this->permission_m->has_role(array('manage_org'),'organization')){
+            array_push($extra['buttons'],
+                array(
+                    'label' => lang('global:edit'),
+                    'url' => 'admin/organization/edit/-entry_id-'
+                )
+            );
+        }
+
+        if($this->permission_m->has_role(array('delete_org'),'organization')){
+            array_push($extra['buttons'],
+                array(
+                    'label' => lang('global:delete'),
+                    'url' => 'admin/organization/delete/-entry_id-',
+                    'confirm' => true
+                )
+            );
+        }
 
         // In this example, we are setting the 5th parameter to true. This
         // signals the function to use the template library to build the page
@@ -77,6 +91,7 @@ class Admin extends Admin_Controller
 	*/
 	public function create()
 	{
+        role_or_die('organization', 'create_org');
 
         // Extra validation for basic data
         //$this->validation_rules['name']['rules'] .= '|required';
@@ -187,6 +202,8 @@ class Admin extends Admin_Controller
 	 */
 	public function edit($id = 0)
 	{
+        role_or_die('organization', 'manage_org');
+
         $id or redirect('admin/organization');
 
         $org = $this->streams->entries->get_entry($id,'orgs','org');
@@ -279,6 +296,8 @@ class Admin extends Admin_Controller
 	 */
 	public function delete($id = 0)
 	{
+        role_or_die('organization', 'delete_org');
+
         $org = $this->streams->entries->get_entry($id,'orgs','org');
         $this->streams->entries->delete_entry($org->org_profile_id, 'profiles', 'org');
         $this->streams->entries->delete_entry($id, 'orgs', 'org');
