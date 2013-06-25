@@ -1,5 +1,6 @@
-pyrocms_organization_module
-===========================
+#Install
+Clone this repo as 'organization' into your shared_addons folder. Then go to Addons>Modules and click install next to the Organizations module.
+
 #Not Complete
 ##To-Do
 * Link member_org stream up for allowing admins to assign users as org admins 
