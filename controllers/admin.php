@@ -81,7 +81,57 @@ class Admin extends Admin_Controller
         // so we don't have to. If we had that set to false, the function
         // would return a string with just the form.
         // todo: Filter results to only show orgs current_user is set as admin on. Maybe $extra['filters']? Have post out on community boards -MBB 6/26/13
-        $this->streams->cp->entries_table('orgs', 'org', 10, 'admin/organization/index', true, $extra);
+
+
+
+        if($this->current_user->group != 'admin'){
+            $this->db->select('org_profiles.*,org_orgs.*');
+            $this->db->from('org_orgs');
+            $this->db->join('org_profiles','org_orgs.org_profile_id = org_profiles.id');
+            $this->db->join('org_admins_orgs_profiles','org_orgs.id = org_admins_orgs_profiles.row_id');
+            $this->db->where('org_admins_orgs_profiles.profiles_id', $this->current_user->profile_id);
+            $query = $this->db->get();
+
+            $data['stream'] = $this->streams->streams->get_stream('orgs','org');
+            $data['stream_fields'] = $this->streams_m->get_stream_fields($data['stream']->id);
+            $data['stream_fields']->id = new stdClass;
+            $data['stream_fields']->created = new stdClass;
+            $data['stream_fields']->updated = new stdClass;
+            $data['stream_fields']->created_by = new stdClass;
+
+            $data['stream_fields']->id->field_name 				= lang('streams:id');
+            $data['stream_fields']->created->field_name 		= lang('streams:created_date');
+            $data['stream_fields']->updated->field_name 		= lang('streams:updated_date');
+            $data['stream_fields']->created_by->field_name 		= lang('streams:created_by');
+
+            $data['entries'] = $query->result();
+
+            $data['filters'] = null;
+
+            $data['pagination'] = false;
+
+            $data['buttons'] = $extra['buttons'];
+
+
+            // -------------------------------------
+            // Build Pages
+            // -------------------------------------
+
+            // Set title
+            $this->template->title(lang_label($extra['title']));
+            $table = $this->load->view('admin/partials/streams/entries', $data, true);
+
+
+            $this->template->build('admin/partials/blank_section', array('content' => $table));
+
+
+        }
+
+        else
+        {
+            $this->streams->cp->entries_table('orgs', 'org', 10, 'admin/organization/index', true, $extra);
+        }
+
     }
 
     //--------------------------------------------------------------------------
