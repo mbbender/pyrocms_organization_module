@@ -15,7 +15,7 @@ class Module_Organization extends Module {
 			),
 			'frontend' => TRUE,
 			'backend' => TRUE,
-			'menu' => 'org:wisconsin',
+			'menu' => 'wisconsin',
             'roles' => array(
                 'manage_org', 'create_org', 'delete_org',
                 'manage_profile_fields'

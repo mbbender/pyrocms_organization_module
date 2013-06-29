@@ -34,5 +34,4 @@ $lang['org:profile_delete_failure']            = 'There was a problem with delet
 $lang['org:member_org']="Member Organization Mapping";
 $lang['org:membership'] = "Membership";
 
-
 ?>
