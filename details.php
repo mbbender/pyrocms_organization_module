@@ -209,7 +209,30 @@ class Module_Organization extends Module {
 
         $this->dbforge->add_column('org_orgs', $org_fields);
 
-        // todo: Add Org Admin role and default it to only manange_org permission with 0 other permissions in the whole system.
+        // Add default user group for Org Admins and set permissions to only Organization management
+        // Not tested, but decided this was not the responsibility of this module. - MBB
+        /*
+        $this->db->select('name')->from('groups')->where('name=org-admin');
+        $query = $this->db->get();
+        if($query->num_rows() == 0){
+            $data = array(
+                'name' => 'org-admin',
+                'description' => 'Organization Admin'
+            );
+            $this->db->insert('groups',$data);
+            $group_id = $this->db->insert_id();
+
+            $data = array(
+                'group_id' => $group_id,
+                'module' =>'organization',
+                'roles' => '{"manage_org":"1"}'
+            );
+            $this->db->set('group_id',$group_id);
+            $this->db->set('module','organization');
+            $this->db->set('roles','{"manage_org":"1"}',FALSE);
+            $this->db->insert('permissions');
+        }
+        */
         return true;
 	}
 
